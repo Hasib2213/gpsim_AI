@@ -18,7 +18,7 @@ TECHNIQUES = [
     "Progressive Muscle Relaxation"
 ]
 
-@router.get("/full-content", response_model=CalmMyBodyResponse)
+@router.post("/full-content", response_model=CalmMyBodyResponse)
 async def get_full_calm_my_body_content():
     """
     Calm My Body mode এ কল করলেই 
