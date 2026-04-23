@@ -7,6 +7,9 @@ load_dotenv()
 
 # Import routers
 from routers.calm_my_body import router as calm_router
+from routers.reset_after_stress import router as reset_router
+from routers.field_mode import router as field_router
+from routers.daily_regulation import router as daily_router
 
 
 
@@ -28,6 +31,9 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(calm_router)
+app.include_router(reset_router)
+app.include_router(field_router)
+app.include_router(daily_router)
 
 # Root endpoint
 @app.get("/")
