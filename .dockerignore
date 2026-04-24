@@ -1,0 +1,25 @@
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+venv/
+.venv/
+
+# Environment and git
+.env
+.git
+.gitignore
+
+# Local tooling and OS files
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

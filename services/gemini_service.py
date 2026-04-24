@@ -31,6 +31,27 @@ async def generate_pdf_content(technique_name: str, mode: str) -> dict:
 import urllib.request
 import urllib.parse
 import asyncio
+import re
+
+
+def _format_youtube_duration(duration_iso: str) -> str:
+    """Convert YouTube ISO-8601 duration like PT1H2M9S into a human-friendly string."""
+    match = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", duration_iso or "")
+    if not match:
+        return "N/A"
+
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+    seconds = int(match.group(3) or 0)
+
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds or not parts:
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
 
 def search_youtube_videos_sync(technique_name: str) -> list:
     api_key = os.getenv("YOUTUBE_API_KEY")
@@ -38,19 +59,35 @@ def search_youtube_videos_sync(technique_name: str) -> list:
         return [{"title": f"Demo Video for {technique_name}", "duration": "5 mins", "url_placeholder": "https://youtube.com/something"}]
     
     query = urllib.parse.quote(f"{technique_name} technique relaxation")
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&type=video&maxResults=2&key={api_key}"
+    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&type=video&maxResults=2&key={api_key}"
     
     try:
-        req = urllib.request.Request(url)
+        req = urllib.request.Request(search_url)
         with urllib.request.urlopen(req) as response:
             data = json.loads(response.read().decode())
+            items = data.get("items", [])
+            video_ids = [item.get("id", {}).get("videoId", "") for item in items if item.get("id", {}).get("videoId")]
+
+            duration_by_id = {}
+            if video_ids:
+                ids_param = urllib.parse.quote(",".join(video_ids))
+                details_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id={ids_param}&key={api_key}"
+                details_req = urllib.request.Request(details_url)
+                with urllib.request.urlopen(details_req) as details_response:
+                    details_data = json.loads(details_response.read().decode())
+                    for video_item in details_data.get("items", []):
+                        vid = video_item.get("id")
+                        iso_duration = video_item.get("contentDetails", {}).get("duration", "")
+                        duration_by_id[vid] = _format_youtube_duration(iso_duration)
+
             results = []
-            for item in data.get("items", []):
+            for item in items:
                 snippet = item.get("snippet", {})
-                video_url = f"https://www.youtube.com/watch?v={item.get('id', {}).get('videoId', '')}"
+                video_id = item.get("id", {}).get("videoId", "")
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
                 results.append({
                     "title": snippet.get("title", ""),
-                    "duration": "N/A", # YouTube search doesn't return duration without a second call
+                    "duration": duration_by_id.get(video_id, "N/A"),
                     "url_placeholder": video_url
                 })
             
